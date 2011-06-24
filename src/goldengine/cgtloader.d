@@ -101,7 +101,7 @@ struct Params { string name, ver, auth, about; bool caseSens; int startSymidx; }
 struct Symbol { string name; Kind kind; enum Kind { NTerm, Term, WS, EOF, CmtS, CmtE, CmtL, Error } }
 struct Rule { int symidx; int[] chsymidxs; }
 struct DFAState { bool acc; int accsymidx; DFAEdge[] edges; }
-struct DFAEdge { int charsetidx, targetidx; }
+struct DFAEdge { int charsetidx, targetstate; }
 struct LALRState { LALRAction[] actions; }
 struct LALRAction { int symbolidx; Action action; int targetidx; enum Action { Shift, Reduce, Goto, Accept } }
 
