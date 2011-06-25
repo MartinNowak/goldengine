@@ -1,7 +1,7 @@
 module goldengine.parser;
 
 import std.algorithm, std.exception, std.range, std.variant;
-import goldengine.cgtloader;
+import goldengine.constants, goldengine.cgtloader;
 
 struct Token { Symbol symbol; Variant data; }
 
@@ -22,7 +22,7 @@ class Parser {
     Token tok;
 
     if (data.empty)
-      tok.symbol.kind = Symbol.Kind.EOF;
+      tok.symbol.kind = SymbolKind.EndOfFile;
     else {
       int state = table.initDFAState;
       bool done;
@@ -55,7 +55,7 @@ class Parser {
             tok.data = data[0 .. acclen];
             data = data[acclen .. $];
           } else {
-            tok.symbol.kind = Symbol.Kind.Error;
+            tok.symbol.kind = SymbolKind.Error;
             tok.data = data[0 .. len];
             data = data[1 .. $]; // pop one char to possibly recover
           }

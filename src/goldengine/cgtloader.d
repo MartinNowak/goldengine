@@ -1,6 +1,7 @@
 module goldengine.cgtloader;
 
 import std.exception, std.stream, std.system, std.typecons, std.variant;
+import goldengine.constants;
 
 struct Empty {}
 
@@ -50,7 +51,7 @@ class CGTable {
     case 'S':
       auto idx = get!int(stream);
       auto args = gets!(string, int)(stream);
-      this.symbols[idx] = Symbol(args[0], cast(Symbol.Kind)args[1]);
+      this.symbols[idx] = Symbol(args[0], cast(SymbolKind)args[1]);
       break;
 
     case 'R':
@@ -98,12 +99,12 @@ class CGTable {
 }
 
 struct Params { string name, ver, auth, about; bool caseSens; int startSymidx; }
-struct Symbol { string name; Kind kind; enum Kind { NTerm, Term, WS, EOF, CmtS, CmtE, CmtL, Error } }
+struct Symbol { string name; SymbolKind kind; }
 struct Rule { int symidx; int[] chsymidxs; }
 struct DFAState { bool acc; int accsymidx; DFAEdge[] edges; }
 struct DFAEdge { int charsetidx, targetstate; }
 struct LALRState { LALRAction[] actions; }
-struct LALRAction { int symbolidx; Action action; int targetidx; enum Action { Shift, Reduce, Goto, Accept } }
+struct LALRAction { int symbolidx; ActionType type; int targetidx; }
 
 T get(T)(InputStream stream) {
   enforce(stream.getc() == typeLetter!T, "corrupt cgt file");
@@ -198,7 +199,7 @@ DFAEdge getImpl(T : DFAEdge)(InputStream stream) {
 
 LALRAction getImpl(T : LALRAction)(InputStream stream) {
   auto sidx = getImpl!int(stream); // int header already gone
-  auto action = cast(LALRAction.Action)get!int(stream);
+  auto action = cast(ActionType)get!int(stream);
   auto tidx = get!int(stream);
   get!Empty(stream);
   return LALRAction(sidx, action, tidx);
