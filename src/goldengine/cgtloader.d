@@ -25,16 +25,18 @@ struct CGTables {
     switch (get!byte(stream)) {
     case 'P':
       // @@BUG@@ Params(gets!(string, string)(stream).tupleof) calls gets twice
-      auto args = gets!(string, string, string, string, bool, int)(stream);
+      auto args = gets!(string, string, string, string, bool)(stream);
+      SymbolRef startSymbol = get!uint(stream);
       this.params = Params(args.tupleof);
+      this.symbols.startSymbol = startSymbol;
       break;
 
     case 'T':
-      auto nsym = get!int(stream);
-      auto nchs = get!int(stream);
-      auto nrules = get!int(stream);
-      auto ndfastates = get!int(stream);
-      auto nlalrstates = get!int(stream);
+      auto nsym = get!uint(stream);
+      auto nchs = get!uint(stream);
+      auto nrules = get!uint(stream);
+      auto ndfastates = get!uint(stream);
+      auto nlalrstates = get!uint(stream);
 
       this.symbols.length = nsym;
       this.charsets.length = nchs;
@@ -44,33 +46,33 @@ struct CGTables {
       break;
 
     case 'C':
-      auto idx = get!int(stream);
+      auto idx = get!uint(stream);
       this.charsets[idx] = get!dstring(stream);
       break;
 
     case 'S':
-      auto idx = get!int(stream);
-      auto args = gets!(string, int)(stream);
+      auto idx = get!uint(stream);
+      auto args = gets!(string, uint)(stream);
       this.symbols[idx] = Symbol(args[0], cast(SymbolKind)args[1]);
       //      std.stdio.writefln("Symbol idx:%s kind:%s name:%s", idx, cast(SymbolKind)args[1], args[0]);
       break;
 
     case 'R':
-      auto idx = get!int(stream);
-      auto rule = Rule(get!int(stream));
+      auto idx = get!uint(stream);
+      auto rule = Rule(get!uint(stream));
       get!Empty(stream);
-      rule.symbols = get!(int[])(stream);
+      rule.symbols = get!(uint[])(stream);
       this.rules[idx] = rule;
       break;
 
     case 'I':
-      this.dfatable.initState = get!int(stream);
-      this.lalrtable.initState = get!int(stream);
+      this.dfatable.initState = get!uint(stream);
+      this.lalrtable.initState = get!uint(stream);
       break;
 
     case 'D':
-      auto idx = get!int(stream);
-      auto args = gets!(bool, int)(stream);
+      auto idx = get!uint(stream);
+      auto args = gets!(bool, uint)(stream);
       auto state = DFAState(args.tupleof);
       get!Empty(stream);
       state.edges = get!(DFAEdge[])(stream);
@@ -78,7 +80,7 @@ struct CGTables {
       break;
 
     case 'L':
-      auto idx = get!int(stream);
+      auto idx = get!uint(stream);
       auto state = LALRState();
       get!Empty(stream);
       state.actions = get!(LALRAction[])(stream);
@@ -90,7 +92,7 @@ struct CGTables {
     }
   }
 
-  static struct Params { string name, ver, auth, about; bool caseSens; SymbolRef startSymbol; }
+  static struct Params { string name, ver, auth, about; bool caseSens; }
   Params params;
 
   CharSetTable charsets;
@@ -129,13 +131,13 @@ template typeLetter(T) {
   static if (is(T == Empty)) enum typeLetter = 'E' ;
   else static if (is(T == bool)) enum typeLetter = 'B';
   else static if (is(T == byte)) enum typeLetter = 'b';
-  else static if (is(T == int)) enum typeLetter = 'I';
+  else static if (is(T == uint)) enum typeLetter = 'I';
   else static if (is(T == string)) enum typeLetter = 'S';
   else static if (is(T == dstring)) enum typeLetter = 'S';
 
   // edges will end when a byte comes along so we might say int is their id
-  else static if (is(T == DFAEdge)) enum typeLetter = typeLetter!int;
-  else static if (is(T == LALRAction)) enum typeLetter = typeLetter!int;
+  else static if (is(T == DFAEdge)) enum typeLetter = typeLetter!uint;
+  else static if (is(T == LALRAction)) enum typeLetter = typeLetter!uint;
 }
 
 Empty getImpl(T : Empty)(InputStream stream) {
@@ -156,8 +158,9 @@ byte getImpl(T : byte)(InputStream stream) {
   return stream.getc();
 }
 
-int getImpl(T : int)(InputStream stream) {
+uint getImpl(T : uint)(InputStream stream) {
   auto val = cast(int)stream.getcw();
+  assert(val >= 0); // actually signed ints, but no negative values
   static if (std.system.endian == Endian.BigEndian)
     val = core.bitop.bswap(val);
   return val;
@@ -186,16 +189,16 @@ dstring getImpl(T : dstring)(InputStream stream) {
 }
 
 DFAEdge getImpl(T : DFAEdge)(InputStream stream) {
-  auto csidx = getImpl!int(stream); // int header already gone
-  auto tidx = get!int(stream);
+  auto csidx = getImpl!uint(stream); // int header already gone
+  auto tidx = get!uint(stream);
   get!Empty(stream);
   return DFAEdge(csidx, tidx);
 }
 
 LALRAction getImpl(T : LALRAction)(InputStream stream) {
-  auto sidx = getImpl!int(stream); // int header already gone
-  auto action = cast(ActionType)get!int(stream);
-  auto tidx = get!int(stream);
+  auto sidx = getImpl!uint(stream); // int header already gone
+  auto action = cast(ActionType)get!uint(stream);
+  auto tidx = get!uint(stream);
   get!Empty(stream);
   return LALRAction(sidx, action, tidx);
 }

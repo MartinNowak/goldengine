@@ -10,9 +10,10 @@ struct Symbol {
   //  Symbol* match;
 }
 
-alias int SymbolRef;
+alias uint SymbolRef;
 struct SymbolTable {
   alias entries this;
+  SymbolRef startSymbol;
   Symbol[] entries;
 }
 
@@ -22,7 +23,7 @@ struct Rule {
   SymbolRef[] symbols;
 }
 
-alias int RuleRef;
+alias uint RuleRef;
 struct RuleTable {
   alias entries this;
   Rule[] entries;
@@ -71,7 +72,7 @@ struct DFAStateTable {
   DFAState[] entries;
 }
 
-alias int CharSetRef;
+alias uint CharSetRef;
 struct CharSetTable {
   alias entries this;
   dstring[] entries;
