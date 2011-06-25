@@ -47,6 +47,7 @@ struct LALRState {
 alias uint LALRStateRef;
 struct LALRStateTable {
   alias entries this;
+  LALRStateRef initState;
   LALRState[] entries;
 }
 
@@ -66,6 +67,7 @@ struct DFAState {
 alias uint DFAStateRef;
 struct DFAStateTable {
   alias entries this;
+  DFAStateRef initState;
   DFAState[] entries;
 }
 

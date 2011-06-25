@@ -7,16 +7,16 @@ struct Empty {}
 
 CGTable loadFromFile(string path) {
   auto cgfile = new BufferedFile(path);
-  auto cgttable = new CGTable;
+  CGTable cgttable;
   enforce(getImpl!string(cgfile) == "GOLD Parser Tables/v1.0", "corrupt cgt file");
   while (!cgfile.eof) {
-    cgttable.getRec(cgfile);
+    cgttable.parseRec(cgfile);
   }
   return cgttable;
 }
 
-class CGTable {
-  void getRec(InputStream stream) {
+struct CGTable {
+  void parseRec(InputStream stream) {
     enforce(stream.getc() == 'M', "corrupt cgt file");
     uint nentries = stream.getcw();
     static if (std.system.endian == Endian.BigEndian)
@@ -39,8 +39,8 @@ class CGTable {
       this.symbols.length = nsym;
       this.charsets.length = nchs;
       this.rules.length = nrules;
-      this.dfastates.length = ndfastates;
-      this.lalrstates.length = nlalrstates;
+      this.dfatable.entries.length = ndfastates;
+      this.lalrtable.entries.length = nlalrstates;
       break;
 
     case 'C':
@@ -64,8 +64,8 @@ class CGTable {
       break;
 
     case 'I':
-      this.initDFAState = get!int(stream);
-      this.initLALRState = get!int(stream);
+      this.dfatable.initState = get!int(stream);
+      this.lalrtable.initState = get!int(stream);
       break;
 
     case 'D':
@@ -74,7 +74,7 @@ class CGTable {
       auto state = DFAState(args.tupleof);
       get!Empty(stream);
       state.edges = get!(DFAEdge[])(stream);
-      this.dfastates[idx] = state;
+      this.dfatable[idx] = state;
       break;
 
     case 'L':
@@ -82,7 +82,7 @@ class CGTable {
       auto state = LALRState();
       get!Empty(stream);
       state.actions = get!(LALRAction[])(stream);
-      this.lalrstates[idx] = state;
+      this.lalrtable[idx] = state;
       break;
 
     default:
@@ -94,14 +94,11 @@ class CGTable {
   Params params;
 
   CharSetTable charsets;
-  DFAStateTable dfastates;
+  DFAStateTable dfatable;
 
   SymbolTable symbols;
   RuleTable rules;
-  LALRStateTable lalrstates;
-
-  DFAStateRef initDFAState;
-  LALRStateRef initLALRState;
+  LALRStateTable lalrtable;
 }
 
 T get(T)(InputStream stream) {

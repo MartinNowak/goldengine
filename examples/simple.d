@@ -1,5 +1,5 @@
-import std.stdio;
-import goldengine.constants, goldengine.cgtloader, goldengine.datatypes, goldengine.parser;
+import std.datetime, std.stdio;
+import goldengine.constants, goldengine.cgtloader, goldengine.datatypes, goldengine.lexer, goldengine.parser;
 
 int main(string[] args) {
   if (args.length < 3) {
@@ -7,24 +7,24 @@ int main(string[] args) {
     return 1;
   }
 
-  auto table = loadFromFile(args[1]);
-  auto parser = new Parser(table);
+  auto tables = loadFromFile(args[1]);
 
   foreach(arg; args[2 .. $]) {
     auto testdata = std.file.readText(arg);
-    parser.data = testdata;
+    auto lexer = Lexer(testdata, tables.dfatable, tables.charsets, tables.symbols);
+
     size_t count;
-    Token tok;
-    do {
-      tok = parser.getNextToken();
+    auto tok = lexer.getNextToken();
+    while (tok.symbol != SpecialSymbol.EndOfFile) {
       if (tok.symbol == SpecialSymbol.Error) {
         writeln("Error ", tok.data);
         break;
       }
-      writeln(table.symbols[tok.symbol].name, " ", tok.data);
+      writeln(tables.symbols[tok.symbol].name, " ", tok.data);
       ++count;
-    } while (tok.symbol != SpecialSymbol.EndOfFile);
-    writeln(arg, "tokencount:", ++count);
+      tok = lexer.getNextToken();
+    }
+    writefln("file:%s tokencount:%s", arg, count);
   }
   return 0;
 }
