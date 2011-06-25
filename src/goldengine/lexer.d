@@ -1,13 +1,21 @@
 module goldengine.lexer;
 
 import std.algorithm, std.range, std.utf;
-import goldengine.datatypes, goldengine.constants;
+import goldengine.cgtloader, goldengine.datatypes, goldengine.constants;
+
+Lexer mkLexer(CGTables tables) {
+    return Lexer(tables.dfatable, tables.charsets, tables.symbols);
+}
 
 struct Lexer {
+  @property void input(string s) {
+    this._input = s;
+  }
+
   Token getNextToken() {
     Token tok;
 
-    if (input.empty)
+    if (_input.empty)
       tok.symbol = SpecialSymbol.EndOfFile;
     else {
       DFAStateRef state = states.initState;
@@ -24,9 +32,8 @@ struct Lexer {
         }
 
         int nextstate = -1;
-        dchar ch = len == input.length ? dchar.init : input[len]; // dchar.init is illegal and serves as EOF
+        dchar ch = len == _input.length ? dchar.init : _input[len]; // dchar.init is illegal and serves as EOF
         foreach(ref edge; states[state].edges) {
-          //          assert(isSorted(charsets[edge.charset]));
           auto chs = assumeSorted(charsets[edge.charset]);
           if (chs.contains(ch)) {
             nextstate = edge.targetState;
@@ -40,12 +47,12 @@ struct Lexer {
         } else {
           if (accstate != -1) {
             tok.symbol = states[accstate].acceptSymbol;
-            tok.data = input[0 .. acclen]; // need utf slicing
-            input.popFrontN(acclen);
+            tok.data = _input[0 .. acclen];
+            _input.popFrontN(acclen);
           } else {
             tok.symbol = SpecialSymbol.Error;
-            tok.data = input[0 .. len];
-            input.popFront; // pop one char to possibly recover
+            tok.data = _input[0 .. len];
+            _input.popFront; // pop one char to possibly recover
           }
           done = true;
         }
@@ -54,8 +61,8 @@ struct Lexer {
     return tok;
   }
 
-  string input;
   DFAStateTable states;
   CharSetTable charsets;
   SymbolTable symbols;
+  string _input;
 }

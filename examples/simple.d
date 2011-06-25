@@ -8,10 +8,10 @@ int main(string[] args) {
   }
 
   auto tables = loadFromFile(args[1]);
+  auto lexer = mkLexer(tables);
 
   foreach(arg; args[2 .. $]) {
-    auto testdata = std.file.readText(arg);
-    auto lexer = Lexer(testdata, tables.dfatable, tables.charsets, tables.symbols);
+    lexer.input = std.file.readText(arg);
 
     size_t count;
     auto tok = lexer.getNextToken();

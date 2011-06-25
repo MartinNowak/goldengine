@@ -5,9 +5,9 @@ import goldengine.constants, goldengine.datatypes;
 
 struct Empty {}
 
-CGTable loadFromFile(string path) {
+CGTables loadFromFile(string path) {
   auto cgfile = new BufferedFile(path);
-  CGTable cgttable;
+  CGTables cgttable;
   enforce(getImpl!string(cgfile) == "GOLD Parser Tables/v1.0", "corrupt cgt file");
   while (!cgfile.eof) {
     cgttable.parseRec(cgfile);
@@ -15,7 +15,7 @@ CGTable loadFromFile(string path) {
   return cgttable;
 }
 
-struct CGTable {
+struct CGTables {
   void parseRec(InputStream stream) {
     enforce(stream.getc() == 'M', "corrupt cgt file");
     uint nentries = stream.getcw();
