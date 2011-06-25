@@ -1,7 +1,7 @@
 module goldengine.cgtloader;
 
 import std.exception, std.stream, std.system, std.typecons, std.variant;
-import goldengine.constants;
+import goldengine.constants, goldengine.datatypes;
 
 struct Empty {}
 
@@ -52,13 +52,14 @@ class CGTable {
       auto idx = get!int(stream);
       auto args = gets!(string, int)(stream);
       this.symbols[idx] = Symbol(args[0], cast(SymbolKind)args[1]);
+      //      std.stdio.writefln("Symbol idx:%s kind:%s name:%s", idx, cast(SymbolKind)args[1], args[0]);
       break;
 
     case 'R':
       auto idx = get!int(stream);
       auto rule = Rule(get!int(stream));
       get!Empty(stream);
-      rule.chsymidxs = get!(int[])(stream);
+      rule.symbols = get!(int[])(stream);
       this.rules[idx] = rule;
       break;
 
@@ -89,22 +90,19 @@ class CGTable {
     }
   }
 
-  int initDFAState, initLALRState;
+  static struct Params { string name, ver, auth, about; bool caseSens; SymbolRef startSymbol; }
   Params params;
-  Symbol[] symbols;
-  dstring[] charsets;
-  Rule[] rules;
-  DFAState[] dfastates;
-  LALRState[] lalrstates;
-}
 
-struct Params { string name, ver, auth, about; bool caseSens; int startSymidx; }
-struct Symbol { string name; SymbolKind kind; }
-struct Rule { int symidx; int[] chsymidxs; }
-struct DFAState { bool acc; int accsymidx; DFAEdge[] edges; }
-struct DFAEdge { int charsetidx, targetstate; }
-struct LALRState { LALRAction[] actions; }
-struct LALRAction { int symbolidx; ActionType type; int targetidx; }
+  CharSetTable charsets;
+  DFAStateTable dfastates;
+
+  SymbolTable symbols;
+  RuleTable rules;
+  LALRStateTable lalrstates;
+
+  DFAStateRef initDFAState;
+  LALRStateRef initLALRState;
+}
 
 T get(T)(InputStream stream) {
   enforce(stream.getc() == typeLetter!T, "corrupt cgt file");

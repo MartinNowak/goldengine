@@ -1,5 +1,5 @@
 import std.stdio;
-import goldengine.constants, goldengine.cgtloader, goldengine.parser;
+import goldengine.constants, goldengine.cgtloader, goldengine.datatypes, goldengine.parser;
 
 int main(string[] args) {
   if (args.length < 3) {
@@ -17,13 +17,13 @@ int main(string[] args) {
     Token tok;
     do {
       tok = parser.getNextToken();
-      if (tok.symbol.kind == SymbolKind.Error) {
+      if (tok.symbol == SpecialSymbol.Error) {
         writeln("Error ", tok.data);
         break;
       }
-      //      writeln(tok.symbol.name, " ", tok.data);
+      writeln(table.symbols[tok.symbol].name, " ", tok.data);
       ++count;
-    } while (tok.symbol.kind != SymbolKind.EndOfFile);
+    } while (tok.symbol != SpecialSymbol.EndOfFile);
     writeln(arg, "tokencount:", ++count);
   }
   return 0;

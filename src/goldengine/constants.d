@@ -11,6 +11,12 @@ enum SymbolKind {
   Error = 7,
 }
 
+enum SpecialSymbol {
+  EndOfFile = 0,
+  Error = 1,
+  WhiteSpace = 2,
+}
+
 enum ActionType {
   Shift = 1,
   Reduce = 2,

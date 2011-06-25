@@ -1,9 +1,7 @@
 module goldengine.parser;
 
 import std.algorithm, std.exception, std.range, std.variant;
-import goldengine.constants, goldengine.cgtloader;
-
-struct Token { Symbol symbol; Variant data; }
+import goldengine.constants, goldengine.cgtloader, goldengine.datatypes;
 
 class Parser {
   this(CGTable table) {
@@ -11,18 +9,11 @@ class Parser {
     this.table = table;
   }
 
-  void parse() {
-    size_t commentLevel;
-    Token[] inputStack;
-    auto start = Token(table.symbols[table.params.startSymidx]);
-    inputStack ~= start;
-  }
-
   Token getNextToken() {
     Token tok;
 
     if (data.empty)
-      tok.symbol.kind = SymbolKind.EndOfFile;
+      tok.symbol = SpecialSymbol.EndOfFile;
     else {
       int state = table.initDFAState;
       bool done;
@@ -32,7 +23,7 @@ class Parser {
       size_t acclen;
 
       while (!done) {
-        if (table.dfastates[state].acc) {
+        if (table.dfastates[state].isAccepting) {
           accstate = state;
           acclen = len;
         }
@@ -40,8 +31,8 @@ class Parser {
         int nextstate = -1;
         foreach(ref edge; table.dfastates[state].edges) {
           //          assert(len < data.length, std.conv.to!string(len) ~ std.conv.to!string(data.front));
-          if (canFind(table.charsets[edge.charsetidx], len == data.length ? dchar.init : data[len])) {
-            nextstate = edge.targetstate;
+          if (canFind(table.charsets[edge.charset], len == data.length ? dchar.init : data[len])) {
+            nextstate = edge.targetState;
             break;
           }
         }
@@ -51,11 +42,11 @@ class Parser {
           ++len;
         } else {
           if (accstate != -1) {
-            tok.symbol = table.symbols[table.dfastates[accstate].accsymidx];
+            tok.symbol = table.dfastates[accstate].acceptSymbol;
             tok.data = data[0 .. acclen];
             data = data[acclen .. $];
           } else {
-            tok.symbol.kind = SymbolKind.Error;
+            tok.symbol = SpecialSymbol.Error;
             tok.data = data[0 .. len];
             data = data[1 .. $]; // pop one char to possibly recover
           }
@@ -69,4 +60,3 @@ class Parser {
   CGTable table;
   string data;
 }
-
