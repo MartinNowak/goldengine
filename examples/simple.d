@@ -10,7 +10,9 @@ int main(string[] args) {
   auto tables = loadFromFile(args[1]);
   auto lexer = mkLexer(tables);
 
+  auto parser = mkParser(tables);
   foreach(arg; args[2 .. $]) {
+    parser.reset();
     lexer.input = std.file.readText(arg);
 
     size_t count;
@@ -21,6 +23,7 @@ int main(string[] args) {
         break;
       }
       writeln(tables.symbols[tok.symbol].name, " ", tok.data);
+      writeln(parser.parseToken(tok));
       ++count;
       tok = lexer.getNextToken();
     }
