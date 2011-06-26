@@ -24,8 +24,8 @@ struct Parser {
       if (inputStack.empty) {
         auto tok = lexer.getNextToken();
         inputStack ~= tok;
-        if (commentDepth == 0
-            && symbols[tok.symbol].kind == SymbolKind.Terminal) {
+        auto skind = symbols[tok.symbol].kind;
+        if (commentDepth == 0 && (skind == SymbolKind.Terminal || skind == SymbolKind.EndOfFile)) {
           return Message.TokenRead;
         }
       } else if (commentDepth > 0) {
