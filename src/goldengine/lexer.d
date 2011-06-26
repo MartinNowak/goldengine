@@ -1,6 +1,6 @@
 module goldengine.lexer;
 
-import std.algorithm, std.range, std.utf;
+import std.algorithm, std.exception, std.range, std.stream, std.utf;
 import goldengine.cgtloader, goldengine.datatypes, goldengine.constants;
 
 class Lexer {
@@ -8,16 +8,22 @@ class Lexer {
     this.tabs = tabs;
   }
 
-  void setInput(string s) {
-    this._input = s;
+  void setInput(InputStream inp) {
+    this._input = inp;
   }
 
   Token getNextToken() {
     Token tok;
 
-    if (_input.empty)
-      tok.symbol = SpecialSymbol.EndOfFile;
-    else {
+    if (curline.empty) {
+      if (_input.eof)
+        tok.symbol = SpecialSymbol.EndOfFile;
+      else {
+        // TODO: need to copy string for multiline tokens (e.g. comments)
+        curline = getln();
+        tok.symbol = SpecialSymbol.WhiteSpace;
+      }
+    } else {
       DFAStateRef state = tabs.dfatable.initState;
       bool done;
       size_t len = 0;
@@ -31,8 +37,10 @@ class Lexer {
           acclen = len;
         }
 
-        int nextstate = -1;
-        dchar ch = len == _input.length ? dchar.init : _input[len]; // dchar.init is illegal and serves as EOF
+        if (len == curline.length)
+          goto EOL;
+        DFAStateRef nextstate = -1;
+        dchar ch = curline[len .. $].front;
         foreach(ref edge; tabs.dfatable[state].edges) {
           auto chs = assumeSorted(tabs.charsets[edge.charset]);
           if (chs.contains(ch)) {
@@ -45,14 +53,15 @@ class Lexer {
           state = nextstate;
           len += std.utf.codeLength!char(ch);
         } else {
+EOL:
           if (accstate != -1) {
             tok.symbol = tabs.dfatable[accstate].acceptSymbol;
-            tok.data = _input[0 .. acclen];
-            _input = _input[acclen .. $];
+            tok.data = curline[0 .. acclen];
+            curline = curline[acclen .. $];
           } else {
             tok.symbol = SpecialSymbol.Error;
-            tok.data = _input[0 .. len];
-            _input.popFront; // pop one char to possibly recover
+            tok.data = curline[0 .. len];
+            curline.popFront; // pop one char to possibly recover
           }
           done = true;
         }
@@ -61,6 +70,32 @@ class Lexer {
     return tok;
   }
 
+  string getln() {
+    assert(!_input.eof);
+    union Prefix {
+      char[9] data;
+      align(1) struct { uint fileno; uint lineno; char delim; };
+    }
+    static assert(Prefix.sizeof == 9);
+    Prefix prefix;
+    prefix.fileno = fileno;
+    prefix.lineno = lineno;
+    prefix.delim = 0;
+
+    char[] nline;
+    do {
+      ++lineno;
+      nline = _input.readLine(readbuf);
+    } while (nline.empty && !_input.eof);
+    readbuf = nline;
+    string annline = cast(string)(prefix.data ~ nline ~ '\0');
+    assert(!std.exception.pointsTo(readbuf, annline));
+    return annline[prefix.sizeof .. $-1];
+  }
+
   CGTables tabs;
-  string _input;
+  InputStream _input;
+  string curline;
+  char[] readbuf;
+  uint fileno, lineno;
 }

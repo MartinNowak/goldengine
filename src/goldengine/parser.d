@@ -10,7 +10,7 @@ class Parser : Lexer {
     super(tabs);
   }
 
-  override void setInput(string inp) {
+  override void setInput(InputStream inp) {
     state = tabs.lalrtable.initState;
     stack.length = 1;
     stack.front = tuple(Token(tabs.symbols.startSymbol), state);

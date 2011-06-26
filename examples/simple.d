@@ -1,4 +1,4 @@
-import std.datetime, std.stdio;
+import std.datetime, std.stdio, std.stream;
 import goldengine.constants, goldengine.cgtloader, goldengine.datatypes, goldengine.lexer, goldengine.parser;
 
 int main(string[] args) {
@@ -11,7 +11,7 @@ int main(string[] args) {
 
   scope auto parser = new Parser(tabs);
   foreach(arg; args[2 .. $]) {
-    parser.setInput(std.file.readText(arg));
+    parser.setInput(new BufferedFile(arg));
 
     while (1) {
       auto msg = parser.parse();
