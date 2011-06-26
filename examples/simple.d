@@ -14,8 +14,8 @@ int main(string[] args) {
     parser.reset();
     parser.lexer.input = std.file.readText(arg);
 
-    auto msg = parser.parse();
-    while (msg != Message.Accept) {
+    while (1) {
+      auto msg = parser.parse();
       if (msg > Message.Accept) {
         writeln("Error ", msg);
         break;
@@ -26,7 +26,8 @@ int main(string[] args) {
                  parser.symbols[parser.inputStack[$-1].symbol].name);
       else
         writefln("parse msg:%s state:%s", msg, parser.state);
-      msg = parser.parse();
+      if (msg == Message.Accept)
+        break;
     }
   }
   return 0;
