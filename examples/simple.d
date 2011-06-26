@@ -8,26 +8,26 @@ int main(string[] args) {
   }
 
   auto tables = loadFromFile(args[1]);
-  auto lexer = mkLexer(tables);
 
   auto parser = mkParser(tables);
   foreach(arg; args[2 .. $]) {
     parser.reset();
-    lexer.input = std.file.readText(arg);
+    parser.lexer.input = std.file.readText(arg);
 
-    size_t count;
-    auto tok = lexer.getNextToken();
-    while (tok.symbol != SpecialSymbol.EndOfFile) {
-      if (tok.symbol == SpecialSymbol.Error) {
-        writeln("Error ", tok.data);
+    auto msg = parser.parse();
+    while (msg != Message.Accept) {
+      if (msg > Message.Accept) {
+        writeln("Error ", msg);
         break;
       }
-      writeln(tables.symbols[tok.symbol].name, " ", tok.data);
-      writeln(parser.parseToken(tok));
-      ++count;
-      tok = lexer.getNextToken();
+      if (msg == Message.TokenRead)
+        writefln("parse msg:%s state:%s value:%s tok:%s", msg, parser.state,
+                 parser.inputStack[$-1].data,
+                 parser.symbols[parser.inputStack[$-1].symbol].name);
+      else
+        writefln("parse msg:%s state:%s", msg, parser.state);
+      msg = parser.parse();
     }
-    writefln("file:%s tokencount:%s", arg, count);
   }
   return 0;
 }

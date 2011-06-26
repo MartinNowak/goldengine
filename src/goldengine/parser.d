@@ -16,6 +16,79 @@ struct Parser {
     state = states.initState;
     stack.length = 1;
     stack.front = tuple(Token(symbols.startSymbol), state);
+    commentDepth = 0;
+  }
+
+  Message parse() {
+    while (1) {
+      if (inputStack.empty) {
+        auto tok = lexer.getNextToken();
+        inputStack ~= tok;
+        if (commentDepth == 0
+            && symbols[tok.symbol].kind == SymbolKind.Terminal) {
+          return Message.TokenRead;
+        }
+      } else if (commentDepth > 0) {
+        auto tok = inputStack.back;
+        inputStack.popBack;
+        switch (symbols[tok.symbol].kind) {
+        case SymbolKind.CommentStart:
+          ++commentDepth;
+          break;
+        case SymbolKind.CommentEnd:
+          --commentDepth;
+          break;
+        case SymbolKind.EndOfFile:
+          return Message.UnmatchedCommentError;
+        default:
+          break;
+        }
+
+      } else {
+        auto tok = inputStack.back;
+        switch (symbols[tok.symbol].kind) {
+        case SymbolKind.Whitespace:
+          inputStack.popBack;
+          break;
+        case SymbolKind.CommentStart:
+          ++commentDepth;
+          inputStack.popBack;
+          break;
+        case SymbolKind.CommentLine:
+          // TODO: skip line but leave newline
+          inputStack.popBack;
+          break;
+
+        case SymbolKind.Error:
+          return Message.LexicalError;
+
+        default:
+
+          final switch (parseToken(tok)) {
+          case ParseResult.Shift:
+            inputStack.popBack;
+            break;
+
+          case ParseResult.Reduce:
+            return Message.Reduction;
+
+          case ParseResult.ReduceTrimmed:
+            break;
+
+          case ParseResult.Accept:
+            return Message.Accept;
+
+          case ParseResult.SyntaxError:
+            return Message.SyntaxError;
+
+          case ParseResult.InternalError:
+            return Message.InternalError;
+          }
+
+        }
+      }
+
+    }
   }
 
   ParseResult parseToken(Token tok) {
@@ -86,6 +159,8 @@ struct Parser {
   SymbolTable symbols;
   LALRStateRef state;
   Tuple!(Token, LALRStateRef)[] stack;
+  uint commentDepth;
+  Token[] inputStack;
 }
 
 size_t binSearch(Range, T)(Range range, T val) {

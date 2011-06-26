@@ -42,7 +42,6 @@ enum Message {
   LexicalError,
   SyntaxError,
 
-  RunawayCommentError,
   UnmatchedCommentError,
 
   InternalError,
