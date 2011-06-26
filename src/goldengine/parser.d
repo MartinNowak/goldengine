@@ -10,14 +10,6 @@ class Parser : Lexer {
     super(tabs);
   }
 
-  override void setInput(InputStream inp) {
-    state = tabs.lalrtable.initState;
-    stack.length = 1;
-    stack.front = tuple(Token(tabs.symbols.startSymbol), state);
-    commentDepth = 0;
-    super.setInput(inp);
-  }
-
   Message parse() {
     while (1) {
       if (inputStack.empty) {
@@ -157,6 +149,14 @@ class Parser : Lexer {
       return false;
     action = tabs.lalrtable[state].actions[idx];
     return true;
+  }
+
+  override void resetState() {
+    super.resetState();
+    state = tabs.lalrtable.initState;
+    stack.length = 1;
+    stack.front = tuple(Token(tabs.symbols.startSymbol), state);
+    commentDepth = 0;
   }
 
   Tuple!(Token, LALRStateRef)[] stack;

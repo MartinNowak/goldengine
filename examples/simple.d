@@ -11,7 +11,7 @@ int main(string[] args) {
 
   scope auto parser = new Parser(tabs);
   foreach(arg; args[2 .. $]) {
-    parser.setInput(new BufferedFile(arg));
+    parser.setInputFile(arg);
 
     while (1) {
       auto msg = parser.parse();

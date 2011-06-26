@@ -9,10 +9,18 @@ class Lexer {
     this.tabs = tabs;
   }
 
-  void setInput(InputStream inp) {
-    this._input = inp;
+  void setInputText(string text, string textName="text input") {
+    this.resetState();
+    this._input = new TArrayStream!string(text);
     this._fileno = std.conv.to!uint(_filenames.length);
-    _filenames ~= "text input";
+    _filenames ~= textName;
+  }
+
+  void setInputFile(string path) {
+    this.resetState();
+    this._input = new BufferedFile(path);
+    this._fileno = std.conv.to!uint(_filenames.length);
+    _filenames ~= path;
   }
 
   Token getNextToken() {
@@ -120,6 +128,13 @@ EOL:
   string getFileName(uint fileno) {
     enforce(fileno < _filenames.length, "unknown fileno");
     return _filenames[fileno];
+  }
+
+  protected void resetState() {
+    _input = null;
+    curline = null;
+    _fileno = 0;
+    _lineno = 0;
   }
 
   CGTables tabs;
