@@ -48,7 +48,7 @@ struct Lexer {
           if (accstate != -1) {
             tok.symbol = states[accstate].acceptSymbol;
             tok.data = _input[0 .. acclen];
-            _input.popFrontN(acclen);
+            _input = _input[acclen .. $];
           } else {
             tok.symbol = SpecialSymbol.Error;
             tok.data = _input[0 .. len];
