@@ -130,7 +130,7 @@ struct Parser {
         findAction(head.symbol, gotoAction) || assert(0);
         assert(gotoAction.type == ActionType.Goto);
         state = gotoAction.target;
-        stack ~= tuple(head, state);
+        stack ~= tuple(head, lookupState);
         return parseResult;
 
       case ActionType.Goto: goto default;
