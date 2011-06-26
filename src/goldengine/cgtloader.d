@@ -1,6 +1,6 @@
 module goldengine.cgtloader;
 
-import std.exception, std.stream, std.system, std.typecons, std.variant;
+import std.algorithm, std.exception, std.stream, std.system, std.typecons, std.variant;
 import goldengine.constants, goldengine.datatypes;
 
 struct Empty {}
@@ -83,7 +83,7 @@ struct CGTables {
       auto idx = get!uint(stream);
       auto state = LALRState();
       get!Empty(stream);
-      state.actions = get!(LALRAction[])(stream);
+      state.actions = sort!q{a.entry < b.entry}(get!(LALRAction[])(stream)).release;
       this.lalrtable[idx] = state;
       break;
 
