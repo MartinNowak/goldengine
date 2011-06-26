@@ -1,37 +1,36 @@
 module goldengine.parser;
 
-import std.algorithm, std.exception, std.range, std.typecons;
+import std.algorithm, std.exception, std.range, std.stream, std.typecons;
 import goldengine.constants, goldengine.cgtloader, goldengine.datatypes, goldengine.lexer;
 
-Parser mkParser(CGTables tables) {
-  auto parser = Parser(mkLexer(tables), tables.lalrtable, tables.rules, tables.symbols);
-  parser.reset();
-  return parser;
-}
-
-struct Parser {
+class Parser : Lexer {
   enum TrimReduction = true;
 
-  void reset() {
-    state = states.initState;
+  this(CGTables tabs) {
+    super(tabs);
+  }
+
+  override void setInput(string inp) {
+    state = tabs.lalrtable.initState;
     stack.length = 1;
-    stack.front = tuple(Token(symbols.startSymbol), state);
+    stack.front = tuple(Token(tabs.symbols.startSymbol), state);
     commentDepth = 0;
+    super.setInput(inp);
   }
 
   Message parse() {
     while (1) {
       if (inputStack.empty) {
-        auto tok = lexer.getNextToken();
+        auto tok = super.getNextToken();
         inputStack ~= tok;
-        auto skind = symbols[tok.symbol].kind;
+        auto skind = tabs.symbols[tok.symbol].kind;
         if (commentDepth == 0 && (skind == SymbolKind.Terminal || skind == SymbolKind.EndOfFile)) {
           return Message.TokenRead;
         }
       } else if (commentDepth > 0) {
         auto tok = inputStack.back;
         inputStack.popBack;
-        switch (symbols[tok.symbol].kind) {
+        switch (tabs.symbols[tok.symbol].kind) {
         case SymbolKind.CommentStart:
           ++commentDepth;
           break;
@@ -46,7 +45,7 @@ struct Parser {
 
       } else {
         auto tok = inputStack.back;
-        switch (symbols[tok.symbol].kind) {
+        switch (tabs.symbols[tok.symbol].kind) {
         case SymbolKind.Whitespace:
           inputStack.popBack;
           break;
@@ -105,14 +104,14 @@ struct Parser {
         return ParseResult.Shift;
 
       case ActionType.Reduce:
-        auto rule = rules[action.target];
+        auto rule = tabs.rules[action.target];
         ParseResult parseResult;
         Token head;
         head.symbol = rule.head;
-        auto lookupState = stack[$-rule.symbols.length][1];
+        auto lookupState = stack[$ - rule.symbols.length][1];
         if (TrimReduction
             && rule.symbols.length == 1
-            && symbols[rule.symbols[0]].kind == SymbolKind.NonTerminal) {
+            && tabs.symbols[rule.symbols[0]].kind == SymbolKind.NonTerminal) {
           head.data = stack.back[0].data;
           stack.popBack;
           parseResult = ParseResult.ReduceTrimmed;
@@ -143,24 +142,20 @@ struct Parser {
   }
 
   bool findAction(SymbolRef sym, out LALRAction action) {
-    auto actions = map!q{a.entry}(states[state].actions);
+    auto actions = map!q{a.entry}(tabs.lalrtable[state].actions);
     assert(isSorted(actions));
 
     auto idx = binSearch(actions, sym);
     if (idx == size_t.max)
       return false;
-    action = states[state].actions[idx];
+    action = tabs.lalrtable[state].actions[idx];
     return true;
   }
 
-  Lexer lexer;
-  LALRStateTable states;
-  RuleTable rules;
-  SymbolTable symbols;
-  LALRStateRef state;
   Tuple!(Token, LALRStateRef)[] stack;
-  uint commentDepth;
   Token[] inputStack;
+  LALRStateRef state;
+  uint commentDepth;
 }
 
 size_t binSearch(Range, T)(Range range, T val) {

@@ -7,12 +7,11 @@ int main(string[] args) {
     return 1;
   }
 
-  auto tables = loadFromFile(args[1]);
+  auto tabs = loadFromFile(args[1]);
 
-  auto parser = mkParser(tables);
+  scope auto parser = new Parser(tabs);
   foreach(arg; args[2 .. $]) {
-    parser.reset();
-    parser.lexer.input = std.file.readText(arg);
+    parser.setInput(std.file.readText(arg));
 
     while (1) {
       auto msg = parser.parse();
@@ -23,7 +22,7 @@ int main(string[] args) {
       if (msg == Message.TokenRead)
         writefln("parse msg:%s state:%s value:%s tok:%s", msg, parser.state,
                  parser.inputStack[$-1].data,
-                 parser.symbols[parser.inputStack[$-1].symbol].name);
+                 parser.tabs.symbols[parser.inputStack[$-1].symbol].name);
       else
         writefln("parse msg:%s state:%s", msg, parser.state);
       if (msg == Message.Accept) {
