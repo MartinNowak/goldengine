@@ -36,8 +36,10 @@ struct Parser {
         ParseResult parseResult;
         Token head;
         head.symbol = rule.head;
+        auto lookupState = stack[$-rule.symbols.length][1];
         if (TrimReduction
-            && rule.symbols.length == 1 && symbols[rule.symbols[0]].kind == SymbolKind.NonTerminal) {
+            && rule.symbols.length == 1
+            && symbols[rule.symbols[0]].kind == SymbolKind.NonTerminal) {
           head.data = stack.back[0].data;
           stack.popBack;
           parseResult = ParseResult.ReduceTrimmed;
@@ -50,7 +52,7 @@ struct Parser {
           parseResult = ParseResult.Reduce;
         }
         assert(stack.length > 0);
-        state = stack.back[1];
+        state = lookupState;
         LALRAction gotoAction;
         findAction(head.symbol, gotoAction) || assert(0);
         assert(gotoAction.type == ActionType.Goto);
