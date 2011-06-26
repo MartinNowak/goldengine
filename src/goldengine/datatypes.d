@@ -36,6 +36,9 @@ struct Reduction {
 
 // Token
 struct Token {
+  @property string toString() {
+    return data.toString();
+  }
   SymbolRef symbol;
   Variant data;
 }

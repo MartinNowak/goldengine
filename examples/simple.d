@@ -26,8 +26,11 @@ int main(string[] args) {
                  parser.symbols[parser.inputStack[$-1].symbol].name);
       else
         writefln("parse msg:%s state:%s", msg, parser.state);
-      if (msg == Message.Accept)
+      if (msg == Message.Accept) {
+        // done
+        writeln(parser.stack);
         break;
+      }
     }
   }
   return 0;
