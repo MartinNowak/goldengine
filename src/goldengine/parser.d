@@ -54,8 +54,8 @@ class Parser : Lexer {
           inputStack.popBack;
           break;
         case SymbolKind.CommentLine:
-          // TODO: skip line but leave newline
           inputStack.popBack;
+          curline.length = 0;
           break;
 
         case SymbolKind.Error:
