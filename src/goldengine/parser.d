@@ -70,21 +70,13 @@ struct Parser {
   }
 
   bool findAction(SymbolRef sym, out LALRAction action) {
-    auto actions = states[state].actions;
+    auto actions = map!q{a.entry}(states[state].actions);
+    assert(isSorted(actions));
 
-    size_t first = 0, count = actions.length;
-    while (count > 0) {
-      immutable step = count / 2, it = first + step;
-      if (actions[it].entry < sym) {
-        first = it + 1;
-        count -= step + 1;
-      } else {
-        count = step;
-      }
-    }
-    if (first == actions.length || actions[first].entry != sym)
+    auto idx = binSearch(actions, sym);
+    if (idx == size_t.max)
       return false;
-    action = actions[first];
+    action = states[state].actions[idx];
     return true;
   }
 
@@ -94,4 +86,20 @@ struct Parser {
   SymbolTable symbols;
   LALRStateRef state;
   Tuple!(Token, LALRStateRef)[] stack;
+}
+
+size_t binSearch(Range, T)(Range range, T val) {
+  size_t first = 0, count = range.length;
+  while (count > 0) {
+    immutable step = count / 2, it = first + step;
+    if (range[it] < val) {
+      first = it + 1;
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  if (first == range.length || range[first] != val)
+    return size_t.max;
+  return first;
 }
