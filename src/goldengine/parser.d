@@ -137,6 +137,13 @@ class Parser : Lexer {
         assert(0);
       }
     } else {
+      if (auto s = tok.data.peek!string()) {
+        try {
+          // might be a string from a reduction
+          this.reportError(*s);
+        } catch (Exception) {
+        }
+      }
       return ParseResult.SyntaxError;
     }
   }

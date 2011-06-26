@@ -1,6 +1,7 @@
 module goldengine.lexer;
 
-import std.algorithm, std.exception, std.range, std.stream, std.utf;
+import std.algorithm, std.exception, std.range, std.stream, std.stdio, std.utf;
+import core.memory;
 import goldengine.cgtloader, goldengine.datatypes, goldengine.constants;
 
 class Lexer {
@@ -10,6 +11,8 @@ class Lexer {
 
   void setInput(InputStream inp) {
     this._input = inp;
+    this._fileno = std.conv.to!uint(_filenames.length);
+    _filenames ~= "text input";
   }
 
   Token getNextToken() {
@@ -60,7 +63,9 @@ EOL:
             curline = curline[acclen .. $];
           } else {
             tok.symbol = SpecialSymbol.Error;
-            tok.data = curline[0 .. len];
+            auto errlexem = curline[0 .. len + std.utf.codeLength!char(ch)];
+            tok.data = errlexem;
+            this.reportError(errlexem);
             curline.popFront; // pop one char to possibly recover
           }
           done = true;
@@ -78,13 +83,13 @@ EOL:
     }
     static assert(Prefix.sizeof == 9);
     Prefix prefix;
-    prefix.fileno = fileno;
-    prefix.lineno = lineno;
+    prefix.fileno = _fileno;
+    prefix.lineno = _lineno;
     prefix.delim = 0;
 
     char[] nline;
     do {
-      ++lineno;
+      ++_lineno;
       nline = _input.readLine(readbuf);
     } while (nline.empty && !_input.eof);
     readbuf = nline;
@@ -93,9 +98,34 @@ EOL:
     return annline[prefix.sizeof .. $-1];
   }
 
+  void reportError(string s) {
+    auto blk = GC.query(s.ptr);
+    immutable(char)* linestart = s.ptr, lineend = s.ptr + s.length;
+    while (*linestart != 0 && linestart > blk.base) {
+      --linestart;
+    }
+    while (*lineend != 0 && lineend < blk.base + blk.size) {
+      ++lineend;
+    }
+    enforce(linestart >= blk.base + 2 * uint.sizeof && lineend < blk.base + blk.size,
+      "can't report error for copied strings");
+    uint fileno = *cast(uint*)(linestart - 2 * uint.sizeof);
+    uint lineno = *cast(uint*)(linestart - 1 * uint.sizeof);
+    stderr.writefln(`Error in "%s" at line %s at pos %s:`, getFileName(fileno), lineno, s.ptr - linestart);
+    stderr.writefln("%s\033[01;31m%s\033[0;m%s",
+      linestart[0 .. s.ptr - linestart], s, (s.ptr + s.length)[0 .. lineend - s.ptr - s.length]);
+    stderr.writeln(repeat(' ', s.ptr - linestart - 1), "^--- here");
+  }
+
+  string getFileName(uint fileno) {
+    enforce(fileno < _filenames.length, "unknown fileno");
+    return _filenames[fileno];
+  }
+
   CGTables tabs;
   InputStream _input;
   string curline;
   char[] readbuf;
-  uint fileno, lineno;
+  uint _fileno, _lineno;
+  static string[] _filenames;
 }
