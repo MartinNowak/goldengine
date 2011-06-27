@@ -3,6 +3,7 @@ module goldengine.lexer;
 import std.algorithm, std.exception, std.range, std.stream, std.stdio, std.utf;
 import core.memory;
 import goldengine.cgtloader, goldengine.datatypes, goldengine.constants;
+version(Windows) import std.c.windows.windows;
 
 class Lexer {
   this(CGTables tabs) {
@@ -119,10 +120,29 @@ EOL:
       "can't report error for copied strings");
     uint fileno = *cast(uint*)(linestart - 2 * uint.sizeof);
     uint lineno = *cast(uint*)(linestart - 1 * uint.sizeof);
-    stderr.writefln(`Error in "%s" at line %s at pos %s:`, getFileName(fileno), lineno, s.ptr - linestart);
-    stderr.writefln("%s\033[01;31m%s\033[0;m%s",
-      linestart[0 .. s.ptr - linestart], s, (s.ptr + s.length)[0 .. lineend - s.ptr - s.length]);
-    stderr.writeln(repeat(' ', s.ptr - linestart - 1), "^--- here");
+    stderr.writefln(`Error in "%s" at line %s at pos %s:`,
+      getFileName(fileno), lineno, s.ptr - linestart);
+
+    version (Windows) {
+      auto hcon = GetStdHandle(STD_ERROR_HANDLE);
+      if (hcon == INVALID_HANDLE_VALUE)
+        stderr.writeln(linestart[0 .. lineend - linestart]);
+      else {
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        GetConsoleScreenBufferInfo(hcon, &info);
+        stderr.write(linestart[0 .. s.ptr - linestart]);
+        SetConsoleTextAttribute(hcon, FOREGROUND_RED);
+        stderr.write(s);
+        SetConsoleTextAttribute(hcon, info.wAttributes);
+        stderr.writeln((s.ptr + s.length)[0 .. lineend - s.ptr - s.length]);
+      }
+    } else {
+      stderr.writefln("%s\033[01;31m%s\033[0;m%s",
+        linestart[0 .. s.ptr - linestart],
+        s,
+        (s.ptr + s.length)[0 .. lineend - s.ptr - s.length]);
+    }
+    stderr.writeln(repeat(' ', s.ptr - linestart), "^--- here");
   }
 
   string getFileName(uint fileno) {
